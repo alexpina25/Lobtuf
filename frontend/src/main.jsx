@@ -7,7 +7,7 @@ import App from './App';
 import './index.css';
 
 export const Root = () => {
-  const [mode, setMode] = useState('light');
+  const [mode, setMode] = useState('dark');
   const theme = mode === 'light' ? lightTheme : darkTheme;
 
   const toggleTheme = () => {

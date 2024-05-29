@@ -1,5 +1,5 @@
-import { createTheme } from '@mui/material/styles';
-import { yellow, grey } from '@mui/material/colors';
+import { createTheme } from "@mui/material/styles";
+import { yellow, grey } from "@mui/material/colors";
 
 const getDesignTokens = (mode) => ({
   palette: {
@@ -10,7 +10,7 @@ const getDesignTokens = (mode) => ({
     secondary: {
       main: grey[900],
     },
-    ...(mode === 'dark'
+    ...(mode === "dark"
       ? {
           background: {
             default: grey[900],
@@ -25,11 +25,11 @@ const getDesignTokens = (mode) => ({
         }),
   },
   typography: {
-    fontFamily: 'Roboto, Arial, sans-serif',
+    fontFamily: "Roboto, Arial, sans-serif",
   },
 });
 
-const lightTheme = createTheme(getDesignTokens('light'));
-const darkTheme = createTheme(getDesignTokens('dark'));
+const lightTheme = createTheme(getDesignTokens("light"));
+const darkTheme = createTheme(getDesignTokens("dark"));
 
 export { lightTheme, darkTheme };
