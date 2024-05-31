@@ -15,6 +15,7 @@ import {
   Chip,
   Autocomplete,
 } from "@mui/material";
+import { useNavigate } from "react-router-dom";
 import { useSnackbar } from "notistack";
 import { Formik, Form } from "formik";
 import { validationSchema } from "../../utils/validations/registerValidation";
@@ -25,6 +26,7 @@ import ReactCountryFlag from "react-country-flag";
 
 const Register = () => {
   const { enqueueSnackbar } = useSnackbar();
+  const navigate = useNavigate();
   const [countryFlag, setCountryFlag] = useState("");
 
   const handleCountryChange = (event, value, setFieldValue) => {
@@ -40,6 +42,7 @@ const Register = () => {
         "Registro exitoso, por favor verifica tu correo electrónico",
         { variant: "success" }
       );
+      navigate(`/verify-otp?email=${values.email}`);
     } catch (error) {
       enqueueSnackbar(error.response.data.message || "Error en el registro", {
         variant: "error",

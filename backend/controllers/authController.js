@@ -1,6 +1,7 @@
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const User = require("../models/User");
+const crypto = require("crypto");
 const sendVerificationEmail = require("../utils/sendVerificationEmail");
 
 exports.register = async (req, res) => {
@@ -30,6 +31,10 @@ exports.register = async (req, res) => {
     } */
 
     const hashedPassword = await bcrypt.hash(password, 10);
+
+    // Generar OTP
+    const otp = crypto.randomInt(100000, 999999).toString();
+
     const user = new User({
       firstName,
       lastName,
@@ -40,55 +45,47 @@ exports.register = async (req, res) => {
       phone,
       positions,
       platforms,
+      otp, // Almacenar el OTP
     });
 
     await user.save();
-    await sendVerificationEmail(user);
+    await sendVerificationEmail(user.email, otp); // Enviar el OTP
 
     res.status(201).json({
       message: "Registro exitoso, por favor verifica tu correo electrónico",
     });
   } catch (error) {
     console.error("Error en el registro:", error);
-    if (error.code === 11000) {
-      const field = Object.keys(error.keyPattern)[0];
-      return res
-        .status(400)
-        .json({ message: `El ${field} ya está registrado` });
-    }
     res.status(500).json({ message: "Error en el registro" });
   }
 };
 
-exports.verifyEmail = async (req, res) => {
-  const { token } = req.query;
+exports.verifyOtp = async (req, res) => {
+  const { email, otp } = req.body;
 
   try {
-    const { id } = jwt.verify(token, process.env.JWT_SECRET);
-    const user = await User.findById(id);
+    const user = await User.findOne({ email, otp });
 
     if (!user) {
-      return res.status(400).json({ message: "Token inválido" });
+      return res.status(400).json({ message: 'Código OTP inválido' });
     }
 
     user.isVerified = true;
+    user.otp = undefined; // Eliminar el OTP una vez verificado
     await user.save();
 
-    // Generar un nuevo token JWT
     const payload = {
       id: user._id,
       email: user.email,
       username: user.username,
     };
 
-    const authToken = jwt.sign(payload, process.env.JWT_SECRET, {
-      expiresIn: "1h",
-    });
+    const authToken = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '1h' });
 
-    // Redirigir al frontend con el token JWT
-    res.redirect(`${process.env.CLIENT_URL}/profile?token=${authToken}`);
+    res.status(200).json({ message: 'Correo verificado exitosamente', token: authToken });
   } catch (error) {
-    console.error("Error en la verificación de correo:", error);
-    res.status(400).json({ message: "Token inválido o expirado" });
+    console.error('Error en la verificación del OTP:', error);
+    res.status(500).json({ message: 'Error en la verificación del OTP' });
   }
 };
+

@@ -3,46 +3,22 @@ const bcrypt = require("bcryptjs");
 
 const userSchema = new mongoose.Schema(
   {
-    firstName: {
-      type: String,
-      required: true,
-    },
-    lastName: {
-      type: String,
-      required: true,
-    },
-    username: {
-      type: String,
-      required: true,
-      /* unique: true, */
-    },
-    email: {
-      type: String,
-      required: true,
-      /* unique: true, */
-    },
-    phone: {
-      type: String,
-    },
-    country: {
-      type: String,
-      required: true,
-    },
+    firstName: { type: String, required: true },
+    lastName: { type: String, required: true },
+    username: { type: String, required: true, unique: true },
+    email: { type: String, required: true, unique: true },
+    phone: { type: String },
+    country: { type: String, required: true },
     positions: [{ type: String, required: true }],
     platforms: [{ type: String, required: true }],
-    password: {
-      type: String,
-      required: true,
-    },
+    password: { type: String, required: true },
     role: {
       type: String,
       enum: ["admin", "manager", "player"],
       default: "player",
     },
-    isVerified: {
-      type: Boolean,
-      default: false,
-    },
+    isVerified: { type: Boolean, default: false },
+    otp: { type: String }, // Añadir el campo OTP
     verificationToken: String,
     resetPasswordToken: String,
     resetPasswordExpire: Date,
@@ -52,7 +28,6 @@ const userSchema = new mongoose.Schema(
   }
 );
 
-// Encriptar la contraseña antes de guardar
 userSchema.pre("save", async function (next) {
   if (!this.isModified("password")) {
     next();
