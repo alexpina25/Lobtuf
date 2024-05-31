@@ -1,100 +1,94 @@
-const User = require('../models/User');
-const bcrypt = require('bcryptjs');
-const jwt = require('jsonwebtoken');
-const crypto = require('crypto');
+const bcrypt = require("bcryptjs");
+const jwt = require("jsonwebtoken");
+const User = require("../models/User");
+const sendVerificationEmail = require("../utils/sendVerificationEmail");
 
-const registerUser = async (req, res) => {
-  console.log(req.body);
+exports.register = async (req, res) => {
   const {
     firstName,
     lastName,
     username,
     email,
-    phoneNumber,
+    password,
     country,
-    position,
-    password
+    phone,
+    positions,
+    platforms,
   } = req.body;
 
   try {
-    const userExists = await User.findOne({ email });
-
-    if (userExists) {
-      return res.status(400).json({ message: 'El usuario ya existe' });
+    /* const existingUserByEmail = await User.findOne({ email });
+    if (existingUserByEmail) {
+      return res.status(400).json({ message: "El email ya está registrado" });
     }
 
-    const verificationToken = crypto.randomBytes(20).toString('hex');
+    const existingUserByUsername = await User.findOne({ username });
+    if (existingUserByUsername) {
+      return res
+        .status(400)
+        .json({ message: "El nombre de usuario ya está registrado" });
+    } */
 
-    const user = await User.create({
+    const hashedPassword = await bcrypt.hash(password, 10);
+    const user = new User({
       firstName,
       lastName,
       username,
       email,
-      phoneNumber,
+      password: hashedPassword,
       country,
-      position,
-      password,
-      verificationToken,
+      phone,
+      positions,
+      platforms,
     });
 
-    const verifyUrl = `http://localhost:3000/verify-account/${verificationToken}`;
-    const message = `Usted ha creado una cuenta en Furbol App. Por favor haga click en el siguiente enlace para verificar su cuenta: \n\n ${verifyUrl}`;
+    await user.save();
+    await sendVerificationEmail(user);
 
-    await sendEmail({
-      email: user.email,
-      subject: 'Verificación de Cuenta',
-      message,
+    res.status(201).json({
+      message: "Registro exitoso, por favor verifica tu correo electrónico",
     });
-
-    res.status(201).json({ message: 'Correo de verificación enviado' });
   } catch (error) {
-    console.log(error);
-    res.status(500).json({ message: 'Error en el servidor' });
-  }
-};
-
-const loginUser = async (req, res) => {
-  const { email, password } = req.body;
-
-  try {
-    const user = await User.findOne({ email });
-
-    if (user && (await bcrypt.compare(password, user.password))) {
-      const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, {
-        expiresIn: '30d',
-      });
-
-      res.json({
-        _id: user._id,
-        name: user.name,
-        email: user.email,
-        token,
-      });
-    } else {
-      res.status(401).json({ message: 'Credenciales inválidas' });
+    console.error("Error en el registro:", error);
+    if (error.code === 11000) {
+      const field = Object.keys(error.keyPattern)[0];
+      return res
+        .status(400)
+        .json({ message: `El ${field} ya está registrado` });
     }
-  } catch (error) {
-    res.status(500).json({ message: 'Error en el servidor' });
+    res.status(500).json({ message: "Error en el registro" });
   }
 };
 
-const verifyUser = async (req, res) => {
+exports.verifyEmail = async (req, res) => {
+  const { token } = req.query;
+
   try {
-    const token = req.params.token;
-    const user = await User.findOne({ verificationToken: token });
+    const { id } = jwt.verify(token, process.env.JWT_SECRET);
+    const user = await User.findById(id);
 
     if (!user) {
-      return res.status(400).json({ message: 'Token inválido o expirado' });
+      return res.status(400).json({ message: "Token inválido" });
     }
 
     user.isVerified = true;
-    user.verificationToken = undefined;
     await user.save();
 
-    res.status(200).json({ message: 'Cuenta verificada' });
+    // Generar un nuevo token JWT
+    const payload = {
+      id: user._id,
+      email: user.email,
+      username: user.username,
+    };
+
+    const authToken = jwt.sign(payload, process.env.JWT_SECRET, {
+      expiresIn: "1h",
+    });
+
+    // Redirigir al frontend con el token JWT
+    res.redirect(`${process.env.CLIENT_URL}/profile?token=${authToken}`);
   } catch (error) {
-    res.status(500).json({ message: 'Error en el servidor' });
+    console.error("Error en la verificación de correo:", error);
+    res.status(400).json({ message: "Token inválido o expirado" });
   }
 };
-
-module.exports = { registerUser, loginUser, verifyUser };

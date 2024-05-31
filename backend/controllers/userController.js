@@ -2,7 +2,7 @@ const User = require('../models/User');
 const crypto = require('crypto');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-const sendEmail = require('../utils/sendEmail');
+const sendEmail = require('../utils/sendVerificationEmail');
 
 const getUserProfile = async (req, res) => {
   try {
