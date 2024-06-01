@@ -71,7 +71,7 @@ exports.verifyOtp = async (req, res) => {
     }
 
     user.isVerified = true;
-    user.otp = undefined; // Eliminar el OTP una vez verificado
+    user.otp = undefined;
     await user.save();
 
     const payload = {
@@ -88,4 +88,5 @@ exports.verifyOtp = async (req, res) => {
     res.status(500).json({ message: 'Error en la verificación del OTP' });
   }
 };
+
 
